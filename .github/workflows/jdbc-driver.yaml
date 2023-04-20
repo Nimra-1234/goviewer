@@ -1,24 +1,32 @@
-name: Go Driver Tests
+name: JDBC Driver Tests
 
 on:
   push:
     branches: [ "master", "PG11" ]
-
+      
   pull_request:
     branches: [ "master", "PG11" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     strategy:
       matrix:
-        go-version: [ '1.18', '1.19' ]
+        distributions: ['zulu', 'temurin', 'microsoft']
+
     defaults:
       run:
-        working-directory: drivers/golang/age/
-  
+        working-directory: drivers/jdbc
+
     steps:
     - uses: actions/checkout@v3
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: ${{ matrix.distributions }}
+        java-version: '17'
 
     - name: Set tag based on branch
       run: |
@@ -35,19 +43,8 @@ jobs:
             echo "TAG=PG11_latest" >> $GITHUB_ENV
           fi
         fi
-      
-    - name: Run apache/age docker image
+
+    - name: Build and Test
       run: |
         export TAG=$TAG
-        docker-compose up -d
-
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go-version }}
-
-    - name: Build
-      run: go build -v ./...
-
-    - name: Test
-      run: go test . -v
+        gradle build
